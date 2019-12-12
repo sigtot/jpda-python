@@ -8,14 +8,16 @@ bg_subber = cv.createBackgroundSubtractorMOG2()
 med_kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5))
 small_kernel = np.ones((3, 3), dtype=np.uint8)
 
-Q = 40*np.eye(4, 4)
+Q = 30*np.eye(4, 4)
 R = 10*np.eye(2, 2)
-T = 0.1
-g = 8
-target_maker = CVTargetMaker(T, Q, R, g)
+T = 0.15
+g = 6
+P_D = 0.4
+lam = 1  # Using Poisson clutter model
+target_maker = CVTargetMaker(T, Q, R, g, P_D, lam)
 have_measurements = False
 targets = []
-gate = 40
+gate = 8
 while True:
     ret, frame = vid.read()
     if frame is None:
@@ -51,12 +53,12 @@ while True:
                    color=(255, 0, 0),
                    thickness=2,
                    lineType=1)
+        gated = t.gate(Z)
+        if gated.size > 0:
+            t.update(gated)
 
     for z in Z:
         cv.circle(frame, (z[0], z[1]), 3, (0, 255, 0), -1)
-        for t in targets:
-            if np.linalg.norm(t.x[0:2] - z) < gate:
-                t.update(z)
     cv.imshow("Frame", frame)
 
     key = cv.waitKey(30)
